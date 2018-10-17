@@ -134,8 +134,11 @@ IDisk::IDisk(const glm::vec3 &pos, const glm::vec3 &normal, float rad)
  */
 
 void IDisk::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
-	hit.t = 1.0f;
-	hit.surfaceNormal = glm::vec3();
+	IPlane p(center, n);
+	p.findClosestIntersection(ray, hit);
+	if (glm::distance(hit.interceptPoint, center) > radius) {
+		hit.t = FLT_MAX;
+	}
 }
 
 /**
@@ -926,4 +929,51 @@ void IEllipsoid::computeAqBqCq(const Ray &ray, float &Aq, float &Bq, float &Cq) 
 		//G * Ro.x +
 		//H * Ro.y +
 		I * Ro.z + J;
+}
+
+/**
+* @fn	ICylinderY::ICylinderY(const glm::vec3 &pos, float rad, float len) : ICylinder(pos, rad, len, QuadricParameters::cylinderYQParams(rad))
+* @brief	Constructor
+* @param	pos	The position.
+* @param	rad	The radians.
+* @param	len	The length.
+*/
+
+IClosedCylinderY::IClosedCylinderY(const glm::vec3 &pos, float rad, float len)
+	: ICylinderY(pos, rad, len), top(pos + glm::vec3(0, len / 2, 0), glm::vec3(0, 1, 0), rad),
+	  bottom(pos - glm::vec3(0, len / 2, 0), glm::vec3(0, -1, 0), rad) {
+}
+
+/**
+* @fn	void ICylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) const
+* @brief	Searches for the nearest intersection
+* @param 		  	ray	The ray.
+* @param [in,out]	hit	The hit.
+*/
+
+void IClosedCylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
+	const glm::vec3 &rayOrigin = ray.origin;
+	const glm::vec3 &rayDirection = ray.direction;
+	static HitRecord hits[2];
+	int numHits = ICylinder::findIntersections(ray, hits);
+	for (int i = 0; i < numHits; i++) {
+		if (hits[i].interceptPoint.y < center.y + length / 2 &&
+			hits[i].interceptPoint.y > center.y - length / 2) {
+			hit = hits[i];
+		}
+	}
+
+	HitRecord topHit;
+	top.findClosestIntersection(ray, topHit);
+	if (topHit.t < hit.t) {
+		hit = topHit;
+	}
+
+	HitRecord bottomHit;
+	bottom.findClosestIntersection(ray, bottomHit);
+	if (bottomHit.t < hit.t) {
+		hit = bottomHit;
+	}
+
+	// hit.t = FLT_MAX;
 }

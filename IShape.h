@@ -221,6 +221,12 @@ struct ICylinderY : public ICylinder {
 	void getTexCoords(const glm::vec3 &pt, float &u, float &v) const;
 };
 
+struct IClosedCylinderY : public ICylinderY {
+	IClosedCylinderY(const glm::vec3 &position, float R, float len);
+	virtual void findClosestIntersection(const Ray &ray, HitRecord &hit) const;
+	IDisk top, bottom;
+};
+
 /**
  * @struct	IEllipsoid
  * @brief	Implicit representation of an ellipsoid.
