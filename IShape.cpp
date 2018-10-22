@@ -108,6 +108,10 @@ HitRecord VisibleIShape::findIntersection(const Ray &ray, const std::vector<Visi
 		if (thisHit.t < theHit.t && thisHit.t > 0) {
 			theHit = thisHit;
 			theHit.material = surfaces[i]->material;
+			theHit.texture = surfaces[i]->texture;
+			if (theHit.texture != nullptr) {
+				surfaces[i]->shape->getTexCoords(theHit.interceptPoint, theHit.u, theHit.v);
+			}
 		}
 	}
 	return theHit;
@@ -361,6 +365,10 @@ QuadricParameters QuadricParameters::sphereQParams(float R) {
 QuadricParameters QuadricParameters::ellipsoidQParams(const glm::vec3 &sz) {
 	glm::vec3 size = 1.0f / (sz * sz);
 	return QuadricParameters(size.x, size.y, size.z, 0, 0, 0, 0, 0, 0, -1);
+}
+
+QuadricParameters QuadricParameters::coneYQParams(float R) {
+	return QuadricParameters(1 / (R * R), -1, 1 / (R * R), 0, 0, 0, 0, 0, 0, 0);
 }
 
 /**
@@ -802,12 +810,18 @@ void ICylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
 	const glm::vec3 &rayDirection = ray.direction;
 	static HitRecord hits[2];
 	int numHits = ICylinder::findIntersections(ray, hits);
+	float minHit = FLT_MAX;
 	for (int i = 0; i < numHits; i++) {
 		if (hits[i].interceptPoint.y < center.y + length / 2 &&
 			hits[i].interceptPoint.y > center.y - length / 2) {
-				hit = hits[i];
-				return;
+				if (hits[i].t < minHit) {
+					hit = hits[i];
+					minHit = hit.t;
+				}
 		}
+	}
+	if (minHit != FLT_MAX) {
+		return;
 	}
 	hit.t = FLT_MAX;
 }
@@ -821,7 +835,10 @@ void ICylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
 */
 
 void ICylinderY::getTexCoords(const glm::vec3 &pt, float &u, float &v) const {
-	u = v = 0.0f;
+	float angle = normalizeRadians(std::atan2(pt.z, pt.x));
+	float bottom = center.y - length / 2.0f;
+	u = angle / M_2PI;
+	v = (pt.y - bottom) / length;
 }
 
 /**
@@ -959,7 +976,8 @@ void IClosedCylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) c
 	for (int i = 0; i < numHits; i++) {
 		if (hits[i].interceptPoint.y < center.y + length / 2 &&
 			hits[i].interceptPoint.y > center.y - length / 2) {
-			hit = hits[i];
+			if (hits[i].t < hit.t)
+				hit = hits[i];
 		}
 	}
 
@@ -976,4 +994,67 @@ void IClosedCylinderY::findClosestIntersection(const Ray &ray, HitRecord &hit) c
 	}
 
 	// hit.t = FLT_MAX;
+}
+
+ICylinderX::ICylinderX(const glm::vec3 &pos, float rad, float len)
+	: ICylinder(pos, rad, len, QuadricParameters::cylinderXQParams(rad)) {
+}
+
+void ICylinderX::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
+	const glm::vec3 &rayOrigin = ray.origin;
+	const glm::vec3 &rayDirection = ray.direction;
+	static HitRecord hits[2];
+	int numHits = ICylinder::findIntersections(ray, hits);
+	for (int i = 0; i < numHits; i++) {
+		if (hits[i].interceptPoint.x < center.x + length / 2 &&
+			hits[i].interceptPoint.x > center.x - length / 2) {
+			hit = hits[i];
+			return;
+		}
+	}
+	hit.t = FLT_MAX;
+}
+
+ICone::ICone(const glm::vec3 &pos, float R, float L,
+	const QuadricParameters &qParams)
+	: IQuadricSurface(qParams, pos), radius(R), height(L) {
+}
+
+void ICone::computeAqBqCq(const Ray &ray, float &Aq, float &Bq, float &Cq) const {
+	glm::vec3 Ro = ray.origin - center;
+	const glm::vec3 &Rd = ray.direction;
+	const float &A = qParams.A;
+	const float &B = qParams.B;
+	const float &C = qParams.C;
+
+	Aq = A * (Rd.x*Rd.x) +
+		B * (Rd.y*Rd.y) +
+		C * (Rd.z*Rd.z);
+
+	Bq = twoA * Ro.x*Rd.x +
+		twoB * Ro.y*Rd.y +
+		twoC * Ro.z*Rd.z;
+
+	Cq = A * (Ro.x * Ro.x) +
+		B * (Ro.y * Ro.y) +
+		C * (Ro.z * Ro.z);
+}
+
+IConeY::IConeY(const glm::vec3 &pos, float R, float H)
+	: ICone(pos, R, H, QuadricParameters::coneYQParams(R)) {
+}
+
+void IConeY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
+	const glm::vec3 &rayOrigin = ray.origin;
+	const glm::vec3 &rayDirection = ray.direction;
+	static HitRecord hits[2];
+	int numHits = ICone::findIntersections(ray, hits);
+
+	hit.t = FLT_MAX;
+
+	for (int i = 0; i < numHits; i++) {
+		if (hits[i].t < numHits) {
+			hit = hits[i];
+		}
+	}
 }

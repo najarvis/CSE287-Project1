@@ -133,6 +133,7 @@ struct QuadricParameters {
 	static QuadricParameters cylinderZQParams(float R);
 	static QuadricParameters sphereQParams(float R);
 	static QuadricParameters ellipsoidQParams(const glm::vec3 &sz);
+	static QuadricParameters coneYQParams(float R);
 };
 
 /**
@@ -227,6 +228,11 @@ struct IClosedCylinderY : public ICylinderY {
 	IDisk top, bottom;
 };
 
+struct ICylinderX : public ICylinder {
+	ICylinderX(const glm::vec3 &position, float R, float len);
+	virtual void findClosestIntersection(const Ray &ray, HitRecord &hit) const;
+};
+
 /**
  * @struct	IEllipsoid
  * @brief	Implicit representation of an ellipsoid.
@@ -235,4 +241,16 @@ struct IClosedCylinderY : public ICylinderY {
 struct IEllipsoid : public IQuadricSurface {
 	IEllipsoid(const glm::vec3 &position, const glm::vec3 &sz);
 	virtual void computeAqBqCq(const Ray &ray, float &Aq, float &Bq, float &Cq) const;
+};
+
+struct ICone : public IQuadricSurface {
+	float radius, height;
+	ICone(const glm::vec3 &position, float R, float H, const QuadricParameters &qParams);
+	virtual void findClosestIntersection(const Ray &ray, HitRecord &hit) const = 0;
+	virtual void computeAqBqCq(const Ray &ray, float &Aq, float &Bq, float &Cq) const;
+};
+
+struct IConeY : public ICone {
+	IConeY(const glm::vec3 &position, float R, float len);
+	virtual void findClosestIntersection(const Ray &ray, HitRecord &hit) const;
 };

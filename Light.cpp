@@ -63,25 +63,28 @@ color totalColor(const Material &mat, const LightColor &lightColor,
 				const glm::vec3 &lightPos, const glm::vec3 &intersectionPt,
 				bool attenuationOn, 
 				const LightAttenuationParameters &ATparams) {
-	if (DEBUG_PIXEL) {
-		std::cout << std::endl;
-	}
 
 	color amb = ambientColor(mat.ambient, lightColor.ambient);
 
-	glm::vec3 l = lightPos - intersectionPt;
+	glm::vec3 l = glm::normalize(lightPos - intersectionPt);
 	color diff = diffuseColor(mat.diffuse, lightColor.diffuse, l, n);
 
-	glm::vec3 r = 2 * glm::dot(l, n) * n - l;
+	glm::vec3 r = glm::normalize(2 * glm::dot(l, n) * n - l);
 	color spec = specularColor(mat.specular, lightColor.specular, mat.shininess, r, v);
 
 	if (attenuationOn) {
-		float dist = l.length();
+		float dist = glm::distance(lightPos, intersectionPt);
 		float AF = 1.0f / (ATparams.constant + ATparams.linear * dist + ATparams.quadratic * dist * dist);
-		std::cout << "ATParams: C = " << ATparams.constant << ", L = " << ATparams.linear << ", Q = " << ATparams.quadratic << std::endl;
-		return amb + AF * diff + AF * spec;
+
+		if (DEBUG_PIXEL) {
+			std::cout << "Dist: " << dist << std::endl;
+			std::cout << "AF: " << AF << std::endl;
+			std::cout << glm::clamp(amb + AF * diff + AF * spec, 0.0f, 1.0f) << std::endl;
+		}
+
+		return glm::clamp(amb + AF * diff + AF * spec, 0.0f, 1.0f);
 	}
-	return amb + diff + spec;
+	return glm::clamp(amb + diff + spec, 0.0f, 1.0f);
 }
 
 /**
@@ -120,7 +123,16 @@ color SpotLight::illuminate(const glm::vec3 &interceptWorldCoords,
 							const Material &material,
 							const Frame &eyeFrame, bool inShadow) const {
 	if (!isOn) return black;
-	return material.ambient;
+
+	glm::vec3 toIntercept = glm::normalize(interceptWorldCoords - lightPosition);
+	// If the angle between the spotDirection and the vector to the intercept is less than the fov, then it is in the light.
+	if (glm::acos(glm::dot(toIntercept, spotDirection)) <= fov) {
+		if (inShadow) return ambientColor(material.ambient, lightColorComponents.ambient);
+
+		glm::vec3 v = glm::normalize(eyeFrame.origin - interceptWorldCoords);
+		return totalColor(material, lightColorComponents, v, normal, lightPosition, interceptWorldCoords, attenuationIsTurnedOn, attenuationParams);
+	}
+	return black;
 }
 
 /**
