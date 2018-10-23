@@ -28,7 +28,7 @@ SpotLightPtr spotLight = (SpotLightPtr)lights[1];
 
 FrameBuffer frameBuffer(WINDOW_WIDTH, WINDOW_HEIGHT);
 RayTracer rayTrace(lightGray);
-PerspectiveCamera pCamera(glm::vec3(0, 10, 10), ORIGIN3D, Y_AXIS, M_PI_2);
+PerspectiveCamera pCamera(glm::vec3(0, 1, 3), glm::vec3(0.0f, 1.0f, -3.0f), Y_AXIS, M_PI_2);
 OrthographicCamera oCamera(glm::vec3(0, 10, 10), ORIGIN3D, Y_AXIS, 25.0f);
 RaytracingCamera *cameras[] = { &pCamera, &oCamera };
 int currCamera = 0;
@@ -37,7 +37,7 @@ IScene scene(cameras[currCamera], false);
 void render() {
 	int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
 	cameras[currCamera]->calculateViewingParameters(frameBuffer.getWindowWidth()/2, frameBuffer.getWindowHeight());
-	cameras[currCamera]->changeConfiguration(glm::vec3(0, 15, 15), ORIGIN3D, Y_AXIS);
+	cameras[currCamera]->changeConfiguration(glm::vec3(0, 10, 15), glm::vec3(4.0f, 1.0f, 0.0f), Y_AXIS);
 	rayTrace.raytraceScene(frameBuffer, numReflections, scene);
 
 	int frameEndTime = glutGet(GLUT_ELAPSED_TIME); // Get end time
@@ -51,14 +51,16 @@ void resize(int width, int height) {
 	glutPostRedisplay();
 } 
 
-ISphere *sphere = new ISphere(glm::vec3(-4.0f, 0.0f, 0.0f), 2.0f);
-IShape *plane = new IPlane(glm::vec3(0.0f, -2.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-IEllipsoid *ellipsoid = new IEllipsoid(glm::vec3(4.0f, 0.0f, 0.0f), glm::vec3(2.0f, 1.0f, 2.0f));
+ISphere *sphere = new ISphere(glm::vec3(-4.0f, 2.0f, 0.0f), 2.0f);
+IShape *plane = new IPlane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+IEllipsoid *ellipsoid = new IEllipsoid(glm::vec3(4.0f, 1.0f, 0.0f), glm::vec3(2.0f, 1.0f, 2.0f));
 IClosedCylinderY *closedCylY = new IClosedCylinderY(glm::vec3(12.0f, 6.0f, 4.0f), 3.0f, 12.0f);
 
 ICylinderX *openCylX = new ICylinderX(glm::vec3(0.0, 2.0f, -10.0f), 2.0f, 5.0f);
 
 IConeY *cone = new IConeY(glm::vec3(0.0f, 0.0f, 0.0f), 3.0f, 3.0f);
+
+IPlane *transPlane = new IPlane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 Image im("usflag.ppm");
 
@@ -68,9 +70,12 @@ void buildScene() {
 	VisibleIShapePtr p;
 	scene.addObject(new VisibleIShape(sphere, silver));
 	scene.addObject(new VisibleIShape(ellipsoid, redPlastic));
-	scene.addObject(p = new VisibleIShape(closedCylY, gold));
+	scene.addObject(p = new VisibleIShape(closedCylY, pewter));
 	scene.addObject(new VisibleIShape(openCylX, blackRubber));
-	//scene.addObject(new VisibleIShape(cone, pewter));
+
+	scene.addObject(new VisibleIShape(transPlane, Material::makeTransparent(0.3f, blue)));
+	
+	// scene.addObject(new VisibleIShape(cone, gold));
 
 	// I am working on getting the cone to work, however it doesn't seem to be rendering at all.
 
@@ -89,11 +94,12 @@ void incrementClamp(int &v, int delta, int lo, int hi) {
 }
 
 void timer(int id) {
-	static int x = 0;
+	static float x = 0.0f;
 	if (isAnimated) {
-		x+=5;
+		x += 0.5f;
+		float pos = glm::sin(x) * 10.0f;
 		std::cout << x << std::endl;
-		sphere->center = glm::vec3(x, 0, 0);
+		transPlane->a = glm::vec3(0, 0, pos);
 		// modify something in your scene
 	}
 	glutTimerFunc(TIME_INTERVAL, timer, 0);

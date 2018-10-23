@@ -54,8 +54,6 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 	HitRecord theHit = VisibleIShape::findIntersection(ray, theScene.visibleObjects);
 	color result = black;
 
-	
-
 	bool has_tex;
 	color texCol;
 	if (theHit.t < FLT_MAX) {
@@ -67,9 +65,21 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 		}
 
 		for (const PositionalLight *l : theScene.lights) {
+			// Send ray from the intercept point to each light source, if it collides with anything we know we are in shadow.
 			glm::vec3 shadowCheckerOrigin = theHit.interceptPoint + EPSILON * theHit.surfaceNormal;
 			Ray shadowChecker = Ray(shadowCheckerOrigin, glm::normalize(l->lightPosition - shadowCheckerOrigin));
-			bool shadow = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects).t < FLT_MAX;
+			HitRecord shadowHit = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects);
+
+			while (shadowHit.material.alpha < 1.0f && shadowHit.t < FLT_MAX) {
+				// If our shadow checker collides with a transparent object, continue the ray in the direction
+				// it was headed, checking for either an opaque object or missing everything else.
+				shadowCheckerOrigin = shadowHit.interceptPoint + EPSILON * shadowChecker.direction;
+				shadowChecker = Ray(shadowCheckerOrigin, shadowChecker.direction);
+
+				shadowHit = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects);
+			}
+
+			bool shadow = (shadowHit.t < FLT_MAX);
 
 			result += l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
 		}
@@ -77,7 +87,34 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 	else {
 		result = defaultColor;
 	}
-	if (has_tex)
-		return glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f);
-	return glm::clamp(result, 0.0f, 1.0f);
+
+	if (theHit.material.alpha < 1.0f) {
+		// Handle transparency
+		float a = theHit.material.alpha;
+		Ray transRay = Ray(theHit.interceptPoint + EPSILON * ray.direction, ray.direction);
+		result = glm::clamp(result * a + traceIndividualRay(transRay, theScene, recursionLevel) * (1.0f - a), 0.0f, 1.0f);
+	}
+
+	if (has_tex) {
+		result = glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f); // Combine the colors with 50% weight to each one.
+	}
+	else {
+		result = glm::clamp(result, 0.0f, 1.0f);
+	}
+
+	if (recursionLevel > 0) {
+		// Handle reflections
+		glm::vec3 I = glm::clamp(ray.direction, 0.0f, 1.0f);
+		glm::vec3 N = glm::clamp(theHit.surfaceNormal, 0.0f, 1.0f);
+
+		glm::vec3 reflectionDirection = I - 2.0f * glm::dot(I, N) * N;
+		glm::vec3 reflectionOrigin = theHit.interceptPoint + EPSILON * reflectionDirection;
+
+		Ray reflectionRay = Ray(reflectionOrigin, reflectionDirection);
+
+		// At the moment, each reflection is 50% weaker than the previous
+		color reflectionColor = traceIndividualRay(reflectionRay, theScene, recursionLevel - 1);
+		return glm::clamp(result + reflectionColor * 0.5f, 0.0f, 1.0f);
+
+	} return result;
 }

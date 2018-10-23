@@ -368,7 +368,8 @@ QuadricParameters QuadricParameters::ellipsoidQParams(const glm::vec3 &sz) {
 }
 
 QuadricParameters QuadricParameters::coneYQParams(float R) {
-	return QuadricParameters(1 / (R * R), -1, 1 / (R * R), 0, 0, 0, 0, 0, 0, 0);
+	float R2 = R * R;
+	return QuadricParameters(1.0f / R2, -1, 1.0f / R2, 0, 0, 0, 0, 0, 0, 0);
 }
 
 /**
