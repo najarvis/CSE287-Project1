@@ -20,7 +20,7 @@ RayTracer::RayTracer(const color &defa)
  */
 
 void RayTracer::raytraceScene(FrameBuffer &frameBuffer, int depth,
-	const IScene &theScene) const {
+	const IScene &theScene, int antiAliasing) const {
 	const RaytracingCamera &camera = *theScene.camera;
 	const std::vector<VisibleIShapePtr> &objs = theScene.visibleObjects;
 	const std::vector<PositionalLightPtr> &lights = theScene.lights;
@@ -31,8 +31,30 @@ void RayTracer::raytraceScene(FrameBuffer &frameBuffer, int depth,
 			if (xDebug == x && yDebug == y) {
 				DEBUG_PIXEL = true;
 			}
-			Ray ray = camera.getRay((float)x, (float)y);
-			color colorForPixel = traceIndividualRay(ray, theScene, depth);
+
+			// Handle Anti-aliasing
+			color avgColor = black;
+
+			int offset = antiAliasing / 2; // <! the number of sample rays on each side of the default ray
+			for (int yAnti = 0; yAnti < antiAliasing; yAnti++) {
+				for (int xAnti = 0; xAnti < antiAliasing; xAnti++) {
+					/*  ___________
+					 * | o | o | o | This box represents a single pixel, and the dashes represent the
+					 * |-----------| origin of each antiAliasing ray.
+					 * | o | o | o |
+					 * |-----------| The center point is the original (antiAliasing=1) ray, and you
+					 * | o | o | o | can see there are [antiAliasing / 2] rays above, below, left, and right
+					 *  -----------  of the original ray.
+					 */
+					 // These coordinates are the origin of each new ray.
+					float xPos = x + (-offset + xAnti) / (float)antiAliasing;
+					float yPos = y + (-offset + yAnti) / (float)antiAliasing;
+
+					Ray ray = camera.getRay((float)xPos, (float)yPos);
+					avgColor += traceIndividualRay(ray, theScene, depth);
+				}
+			}
+			color colorForPixel = avgColor * (1.0f / (antiAliasing * antiAliasing));
 			frameBuffer.setColor(x, y, colorForPixel);
 		}
 	}
@@ -54,61 +76,51 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 	HitRecord theHit = VisibleIShape::findIntersection(ray, theScene.visibleObjects);
 	color result = black;
 
-	bool has_tex;
 	color texCol;
 	if (theHit.t < FLT_MAX) {
-		if (theHit.texture != nullptr) {
-			has_tex = true;
-			float u = glm::clamp(theHit.u, 0.0f, 1.0f);
-			float v = glm::clamp(theHit.v, 0.0f, 1.0f);
-			texCol = theHit.texture->getPixel(u, v);
-		}
 
+		// Handle lighting + shadows
 		for (const PositionalLight *l : theScene.lights) {
 			// Send ray from the intercept point to each light source, if it collides with anything we know we are in shadow.
 			glm::vec3 shadowCheckerOrigin = theHit.interceptPoint + EPSILON * theHit.surfaceNormal;
 			Ray shadowChecker = Ray(shadowCheckerOrigin, glm::normalize(l->lightPosition - shadowCheckerOrigin));
 			HitRecord shadowHit = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects);
 
-			while (shadowHit.material.alpha < 1.0f && shadowHit.t < FLT_MAX) {
-				// If our shadow checker collides with a transparent object, continue the ray in the direction
-				// it was headed, checking for either an opaque object or missing everything else.
-				shadowCheckerOrigin = shadowHit.interceptPoint + EPSILON * shadowChecker.direction;
-				shadowChecker = Ray(shadowCheckerOrigin, shadowChecker.direction);
-
-				shadowHit = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects);
-			}
-
-			bool shadow = (shadowHit.t < FLT_MAX);
+			bool shadow = (shadowHit.t < glm::distance(l->lightPosition, theHit.interceptPoint));
 
 			result += l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
 		}
+
+		// Handle textures
+		if (theHit.texture != nullptr) {
+			float u = glm::clamp(theHit.u, 0.0f, 1.0f);
+			float v = glm::clamp(theHit.v, 0.0f, 1.0f);
+			texCol = theHit.texture->getPixel(u, v);
+			result = glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f);
+		}
 	}
 	else {
+		// If we don't collide with any visible objects, return the 'sky' color.
 		result = defaultColor;
 	}
 
-	if (theHit.material.alpha < 1.0f) {
-		// Handle transparency
-		float a = theHit.material.alpha;
-		Ray transRay = Ray(theHit.interceptPoint + EPSILON * ray.direction, ray.direction);
-		result = glm::clamp(result * a + traceIndividualRay(transRay, theScene, recursionLevel) * (1.0f - a), 0.0f, 1.0f);
-	}
-
-	if (has_tex) {
-		result = glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f); // Combine the colors with 50% weight to each one.
-	}
-	else {
-		result = glm::clamp(result, 0.0f, 1.0f);
+	// Handle transparent objects
+	HitRecord transHit = VisibleIShape::findIntersection(ray, theScene.transparentObjects);
+	if (transHit.t < FLT_MAX) {
+		if (transHit.t < theHit.t) {
+			float a = transHit.material.alpha;
+			result = glm::clamp(result * (1.0f - a) + transHit.material.ambient * a, 0.0f, 1.0f);
+		}
 	}
 
 	if (recursionLevel > 0) {
 		// Handle reflections
-		glm::vec3 I = glm::clamp(ray.direction, 0.0f, 1.0f);
-		glm::vec3 N = glm::clamp(theHit.surfaceNormal, 0.0f, 1.0f);
+		glm::vec3 I = glm::normalize(ray.direction);
+		glm::vec3 N = glm::normalize(theHit.surfaceNormal);
 
 		glm::vec3 reflectionDirection = I - 2.0f * glm::dot(I, N) * N;
-		glm::vec3 reflectionOrigin = theHit.interceptPoint + EPSILON * reflectionDirection;
+		
+		glm::vec3 reflectionOrigin = theHit.interceptPoint + EPSILON * theHit.surfaceNormal;
 
 		Ray reflectionRay = Ray(reflectionOrigin, reflectionDirection);
 
@@ -116,5 +128,5 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 		color reflectionColor = traceIndividualRay(reflectionRay, theScene, recursionLevel - 1);
 		return glm::clamp(result + reflectionColor * 0.5f, 0.0f, 1.0f);
 
-	} return result;
+	} return glm::clamp(result, 0.0f, 1.0f);
 }

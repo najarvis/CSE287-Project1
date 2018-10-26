@@ -1054,8 +1054,13 @@ void IConeY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
 	hit.t = FLT_MAX;
 
 	for (int i = 0; i < numHits; i++) {
-		if (hits[i].t < numHits) {
-			hit = hits[i];
+		if (hits[i].interceptPoint.y < center.y &&
+			hits[i].interceptPoint.y > center.y - height) {
+			if (hits[i].t < hit.t) {
+				hit = hits[i];
+			}
+
 		}
 	}
+
 }

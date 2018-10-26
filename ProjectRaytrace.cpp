@@ -38,7 +38,7 @@ void render() {
 	int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
 	cameras[currCamera]->calculateViewingParameters(frameBuffer.getWindowWidth()/2, frameBuffer.getWindowHeight());
 	cameras[currCamera]->changeConfiguration(glm::vec3(0, 10, 15), glm::vec3(4.0f, 1.0f, 0.0f), Y_AXIS);
-	rayTrace.raytraceScene(frameBuffer, numReflections, scene);
+	rayTrace.raytraceScene(frameBuffer, numReflections, scene, antiAliasing);
 
 	int frameEndTime = glutGet(GLUT_ELAPSED_TIME); // Get end time
 	float totalTimeSec = (frameEndTime - frameStartTime) / 1000.0f;
@@ -56,9 +56,9 @@ IShape *plane = new IPlane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.
 IEllipsoid *ellipsoid = new IEllipsoid(glm::vec3(4.0f, 1.0f, 0.0f), glm::vec3(2.0f, 1.0f, 2.0f));
 IClosedCylinderY *closedCylY = new IClosedCylinderY(glm::vec3(12.0f, 6.0f, 4.0f), 3.0f, 12.0f);
 
-ICylinderX *openCylX = new ICylinderX(glm::vec3(0.0, 2.0f, -10.0f), 2.0f, 5.0f);
+ICylinderX *openCylX = new ICylinderX(glm::vec3(0.0, 2.0f, -10.0f), 2.0f, 15.0f);
 
-IConeY *cone = new IConeY(glm::vec3(0.0f, 0.0f, 0.0f), 3.0f, 3.0f);
+IConeY *cone = new IConeY(glm::vec3(0.0f, 4.0f, 0.0f), 1.0f, 4.0f);
 
 IPlane *transPlane = new IPlane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
@@ -70,15 +70,14 @@ void buildScene() {
 	VisibleIShapePtr p;
 	scene.addObject(new VisibleIShape(sphere, silver));
 	scene.addObject(new VisibleIShape(ellipsoid, redPlastic));
-	scene.addObject(p = new VisibleIShape(closedCylY, pewter));
 	scene.addObject(new VisibleIShape(openCylX, blackRubber));
 
-	scene.addObject(new VisibleIShape(transPlane, Material::makeTransparent(0.3f, blue)));
+	scene.addTransparentObject(new VisibleIShape(transPlane, ruby), 0.9f);
 	
-	// scene.addObject(new VisibleIShape(cone, gold));
-
-	// I am working on getting the cone to work, however it doesn't seem to be rendering at all.
-
+	scene.addObject(new VisibleIShape(cone, gold));
+	
+	// Assign an image texture to the Y-oriented closed cylinder.
+	scene.addObject(p = new VisibleIShape(closedCylY, pewter));
 	p->setTexture(&im);
 
 	scene.addObject(lights[0]);
