@@ -72,11 +72,11 @@ void buildScene() {
 	scene.addObject(new VisibleIShape(ellipsoid, redPlastic));
 	scene.addObject(new VisibleIShape(openCylX, blackRubber));
 
-	scene.addTransparentObject(new VisibleIShape(transPlane, ruby), 0.9f);
+	scene.addTransparentObject(new VisibleIShape(transPlane, blue), 0.4f);
 	
 	scene.addObject(new VisibleIShape(cone, gold));
 	
-	// Assign an image texture to the Y-oriented closed cylinder.
+	// Assign the flag image texture to the Y-oriented closed cylinder.
 	scene.addObject(p = new VisibleIShape(closedCylY, pewter));
 	p->setTexture(&im);
 

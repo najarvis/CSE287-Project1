@@ -88,15 +88,20 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 
 			bool shadow = (shadowHit.t < glm::distance(l->lightPosition, theHit.interceptPoint));
 
-			result += l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
-		}
+			color matContrib;
+			matContrib = l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
 
-		// Handle textures
-		if (theHit.texture != nullptr) {
-			float u = glm::clamp(theHit.u, 0.0f, 1.0f);
-			float v = glm::clamp(theHit.v, 0.0f, 1.0f);
-			texCol = theHit.texture->getPixel(u, v);
-			result = glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f);
+			// Handle textures
+			if (theHit.texture != nullptr) {
+				float u = glm::clamp(theHit.u, 0.0f, 1.0f);
+				float v = glm::clamp(theHit.v, 0.0f, 1.0f);
+				texCol = theHit.texture->getPixel(u, v);
+				color texContrib = l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, texCol, theScene.camera->cameraFrame, shadow);
+				result += glm::clamp((matContrib + texContrib) / 2.0f, 0.0f, 1.0f);
+			}
+			else {
+				result += matContrib;
+			}
 		}
 	}
 	else {
