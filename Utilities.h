@@ -83,6 +83,7 @@ glm::vec3 multiplyMatricesAndVertex(const std::vector<glm::mat3> &M, const glm::
 std::vector<glm::vec3> multiplyMatrixAndVertices(const glm::mat3 &M, const std::vector<glm::vec3> &verts);
 std::vector<glm::vec3> multiplyMatricesAndVertices(const std::vector<glm::mat3> &M, const std::vector<glm::vec3> &verts);
 glm::mat2 myinverse(const glm::mat2 &M);
+glm::mat3 mystery(float a, float b);
 
 void computeXYZFromAzimuthAndElevation(float R,
 	float az, float el,

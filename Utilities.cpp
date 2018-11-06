@@ -641,7 +641,7 @@ glm::vec3 normalFrom3Points(const std::vector<glm::vec3> pts) {
 */
 
 glm::vec3 getRow(const glm::mat3 &mat, int row) {
-	return glm::vec3();
+	return glm::vec3(mat[0][row], mat[1][row], mat[2][row]);
 }
 
 /**
@@ -653,7 +653,7 @@ glm::vec3 getRow(const glm::mat3 &mat, int row) {
  */
 
 glm::vec3 getCol(const glm::mat3 &mat, int col) {
-	return glm::vec3();
+	return glm::vec3(mat[col][0], mat[col][1], mat[col][2]);
 }
 
 /**
@@ -664,7 +664,7 @@ glm::vec3 getCol(const glm::mat3 &mat, int col) {
 */
 
 bool isInvertible(const glm::mat2 &mat) {
-	return false;
+	return glm::determinant(mat) != 0;
 }
 
 /**
@@ -675,7 +675,7 @@ bool isInvertible(const glm::mat2 &mat) {
  */
 
 bool isInvertible(const glm::mat3 &mat) {
-	return false;
+	return glm::determinant(mat) != 0;
 }
 
 /**
@@ -687,8 +687,9 @@ bool isInvertible(const glm::mat3 &mat) {
  */
 
 glm::vec3 solveLinearSystem(const glm::mat3 &M, const glm::vec3 &y) {
-	glm::vec3 result;
-	return result;
+	if (!isInvertible(M)) return glm::vec3(0.0f, 0.0f, 0.0f);
+
+	return glm::inverse(M) * y;
 }
 
 /**
@@ -699,7 +700,10 @@ glm::vec3 solveLinearSystem(const glm::mat3 &M, const glm::vec3 &y) {
  */
 
 glm::mat3 addMatrices(const std::vector<glm::mat3> &M) {
-	glm::mat3 result;
+	glm::mat3 result(0, 0, 0, 0, 0, 0, 0, 0, 0);
+	for (auto& m : M) {
+		result += m;
+	}
 	return result;
 }
 
@@ -712,6 +716,9 @@ glm::mat3 addMatrices(const std::vector<glm::mat3> &M) {
 
 glm::mat3 multiplyMatrices(const std::vector<glm::mat3> &M) {
 	glm::mat3 result;
+	for (auto& m : M) {
+		result *= m;
+	}
 	return result;
 }
 
@@ -724,7 +731,7 @@ glm::mat3 multiplyMatrices(const std::vector<glm::mat3> &M) {
  */
 
 glm::vec3 multiplyMatrixAndVertex(const glm::mat3 &M, const glm::vec3 &x) {
-	return glm::vec3();
+	return M * x;
 }
 
 /**
@@ -736,7 +743,7 @@ glm::vec3 multiplyMatrixAndVertex(const glm::mat3 &M, const glm::vec3 &x) {
  */
 
 glm::vec3 multiplyMatricesAndVertex(const std::vector<glm::mat3> &M, const glm::vec3 &x) {
-	return glm::vec3();
+	return multiplyMatrices(M) * x;
 }
 
 /**
@@ -749,6 +756,9 @@ glm::vec3 multiplyMatricesAndVertex(const std::vector<glm::mat3> &M, const glm::
 
 std::vector<glm::vec3> multiplyMatrixAndVertices(const glm::mat3 &M, const std::vector<glm::vec3> &verts) {
 	std::vector<glm::vec3> result;
+	for (auto& v : verts) {
+		result.push_back(M * v);
+	}
 	return result;
 }
 
@@ -761,8 +771,18 @@ std::vector<glm::vec3> multiplyMatrixAndVertices(const glm::mat3 &M, const std::
  */
 
 std::vector<glm::vec3> multiplyMatricesAndVertices(const std::vector<glm::mat3> &M, const std::vector<glm::vec3> &verts) {
-	std::vector<glm::vec3> result;
-	return result;
+	glm::mat3 BIGMAT = multiplyMatrices(M);
+	return multiplyMatrixAndVertices(BIGMAT, verts);
+}
+
+glm::mat3 mystery(float a, float b) {
+	glm::mat3 W(a, b, b, b, b, b, a, a, a);
+	/* | a b a |
+	 * | b b a |
+	 * | b b a |
+	 */
+
+	return W * W * W;
 }
 
 /**
