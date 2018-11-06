@@ -42,8 +42,9 @@ void RayTracer::raytraceScene(FrameBuffer &frameBuffer, int depth,
 					 * | o | o | o | This box represents a single pixel, and the dashes represent the
 					 * |-----------| origin of each antiAliasing ray.
 					 * | o | o | o |
-					 * |-----------|
-					 * | o | o | o |
+					 * |-----------| The center point is the original (antiAliasing=1) ray, and you
+					 * | o | o | o | can see there are [antiAliasing / 2] rays above, below, left, and right
+					 *  -----------  of the original ray.
 					 */
 					 // These coordinates are the origin of each new ray.
 					float xPos = x + (-offset + xAnti) / (float)antiAliasing;
@@ -85,9 +86,22 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 			Ray shadowChecker = Ray(shadowCheckerOrigin, glm::normalize(l->lightPosition - shadowCheckerOrigin));
 			HitRecord shadowHit = VisibleIShape::findIntersection(shadowChecker, theScene.visibleObjects);
 
-			bool shadow = (shadowHit.t < FLT_MAX);
+			bool shadow = (shadowHit.t < glm::distance(l->lightPosition, theHit.interceptPoint));
 
-			result += l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
+			color matContrib;
+			matContrib = l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, theHit.material, theScene.camera->cameraFrame, shadow);
+
+			// Handle textures
+			if (theHit.texture != nullptr) {
+				float u = glm::clamp(theHit.u, 0.0f, 1.0f);
+				float v = glm::clamp(theHit.v, 0.0f, 1.0f);
+				texCol = theHit.texture->getPixel(u, v);
+				color texContrib = l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, texCol, theScene.camera->cameraFrame, shadow);
+				result += glm::clamp((matContrib + texContrib) / 2.0f, 0.0f, 1.0f);
+			}
+			else {
+				result += matContrib;
+			}
 		}
 
 		// Handle textures
@@ -107,7 +121,8 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 	HitRecord transHit = VisibleIShape::findIntersection(ray, theScene.transparentObjects);
 	if (transHit.t < FLT_MAX) {
 		if (transHit.t < theHit.t) {
-			result = glm::clamp(result + transHit.material.ambient * transHit.material.alpha, 0.0f, 1.0f);
+			float a = transHit.material.alpha;
+			result = glm::clamp(result * (1.0f - a) + transHit.material.ambient * a, 0.0f, 1.0f);
 		}
 	}
 

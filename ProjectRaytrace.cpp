@@ -58,7 +58,7 @@ IClosedCylinderY *closedCylY = new IClosedCylinderY(glm::vec3(12.0f, 6.0f, 4.0f)
 
 ICylinderX *openCylX = new ICylinderX(glm::vec3(0.0, 2.0f, -10.0f), 2.0f, 15.0f);
 
-IConeY *cone = new IConeY(glm::vec3(0.0f, 0.0f, 0.0f), 3.0f, 3.0f);
+IConeY *cone = new IConeY(glm::vec3(0.0f, 4.0f, 0.0f), 1.0f, 4.0f);
 
 IPlane *transPlane = new IPlane(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
@@ -72,13 +72,11 @@ void buildScene() {
 	scene.addObject(new VisibleIShape(ellipsoid, redPlastic));
 	scene.addObject(new VisibleIShape(openCylX, blackRubber));
 
-	scene.addTransparentObject(new VisibleIShape(transPlane, ruby), 0.9f);
+	scene.addTransparentObject(new VisibleIShape(transPlane, blue), 0.4f);
 	
-	// scene.addObject(new VisibleIShape(cone, gold));
-
-	// I am working on getting the cone to work, however it doesn't seem to be rendering at all.
+	scene.addObject(new VisibleIShape(cone, gold));
 	
-	// Assign an image texture to the Y-oriented closed cylinder.
+	// Assign the flag image texture to the Y-oriented closed cylinder.
 	scene.addObject(p = new VisibleIShape(closedCylY, pewter));
 	p->setTexture(&im);
 

@@ -958,7 +958,8 @@ void IEllipsoid::computeAqBqCq(const Ray &ray, float &Aq, float &Bq, float &Cq) 
 */
 
 IClosedCylinderY::IClosedCylinderY(const glm::vec3 &pos, float rad, float len)
-	: ICylinderY(pos, rad, len), top(pos + glm::vec3(0, len / 2, 0), glm::vec3(0, 1, 0), rad),
+	: ICylinderY(pos, rad, len), 
+	  top(pos + glm::vec3(0, len / 2, 0), glm::vec3(0, 1, 0), rad),
 	  bottom(pos - glm::vec3(0, len / 2, 0), glm::vec3(0, -1, 0), rad) {
 }
 
@@ -1054,8 +1055,13 @@ void IConeY::findClosestIntersection(const Ray &ray, HitRecord &hit) const {
 	hit.t = FLT_MAX;
 
 	for (int i = 0; i < numHits; i++) {
-		if (hits[i].t < numHits) {
-			hit = hits[i];
+		if (hits[i].interceptPoint.y < center.y &&
+			hits[i].interceptPoint.y > center.y - height) {
+			if (hits[i].t < hit.t) {
+				hit = hits[i];
+			}
+
 		}
 	}
+
 }
