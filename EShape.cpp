@@ -11,6 +11,19 @@
 
 EShapeData EShape::createEDisk(const Material &mat, float radius, int slices) {
 	EShapeData result;
+
+	float angle_delta = M_2PI / slices;
+	float theta = 0.0f;
+
+	glm::vec4 center(0.0f, 0.0f, 0.0f, 1.0f);
+	for (int i = 0; i < slices; i++) {
+		glm::vec4 p1(cos(theta) * radius, 0.0f, sin(theta) * radius, 1.0f);
+		glm::vec4 p2(cos(theta) * radius, 0.0f, sin(theta) * radius, 1.0f);
+
+		result.push_back(VertexData(center, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+		result.push_back(VertexData(p1, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+		result.push_back(VertexData(p2, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+	}
 	return result;
 }
 
@@ -41,6 +54,46 @@ EShapeData EShape::createEPyramid(const Material &mat, float width, float height
 
 EShapeData EShape::createECylinder(const Material &mat, float R, float height, int slices, int stacks) {
 	EShapeData result;
+	glm::vec4 top(0.0f, height / 2.0f, 0.0f, 1.0f);
+	glm::vec4 bottom(0.0f, -height / 2.0f, 0.0f, 1.0f);
+
+	float angle_delta = M_2PI / slices;
+	float theta = 0.0f;
+	for (int i = 0; i < slices; i++) {
+		glm::vec4 top1(cos(theta) * R, height / 2, sin(theta) * R, 1.0f);
+		glm::vec4 top2(cos(theta + angle_delta) * R, height / 2, sin(theta + angle_delta) * R, 1.0f);
+
+		glm::vec4 bottom1(cos(theta) * R, -height / 2, sin(theta) * R, 1.0f);
+		glm::vec4 bottom2(cos(theta + angle_delta) * R, -height / 2, sin(theta + angle_delta) * R, 1.0f);
+
+		std::vector<glm::vec3> side;
+		side.push_back(top1);
+		side.push_back(top2);
+		side.push_back(bottom1);
+		glm::vec3 norm = normalFrom3Points(side);
+
+		// Top side
+		result.push_back(VertexData(top, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+		result.push_back(VertexData(top1, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+		result.push_back(VertexData(top2, glm::vec3(0.0f, 1.0f, 0.0f), mat));
+
+		// Bottom side
+		result.push_back(VertexData(bottom, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+		result.push_back(VertexData(bottom1, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+		result.push_back(VertexData(bottom2, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+
+		// Side triangle 1
+		result.push_back(VertexData(top1, norm, mat));
+		result.push_back(VertexData(top2, norm, mat));
+		result.push_back(VertexData(bottom1, norm, mat));
+
+		// Side triangle 2
+		result.push_back(VertexData(bottom1, norm, mat));
+		result.push_back(VertexData(bottom2, norm, mat));
+		result.push_back(VertexData(top2, norm, mat));
+
+		theta += angle_delta;
+	}
 	return result;
 }
 
@@ -57,6 +110,33 @@ EShapeData EShape::createECylinder(const Material &mat, float R, float height, i
 
 EShapeData EShape::createECone(const Material &mat, float R, float height, int slices, int stacks) {
 	EShapeData result;
+	float angle_delta = M_2PI / slices;
+	float theta = 0.0f;
+	glm::vec4 top(0.0f, height, 0.0f, 1.0f);
+	glm::vec4 origin(0.0f, 0.0f, 0.0f, 1.0f);
+	for (int i = 0; i < slices; i++) {
+		glm::vec4 p1(cos(theta) * R, 0.0f, sin(theta) * R, 1.0f);
+		glm::vec4 p2(cos(theta + angle_delta) * R, 0.0f, sin(theta + angle_delta) * R, 1.0f);
+
+		// Calculate normal for side of the triangle
+		std::vector<glm::vec3> side;
+		side.push_back(top);
+		side.push_back(p1);
+		side.push_back(p2);
+		glm::vec3 norm_side = normalFrom3Points(side);
+
+		// Push back vertex data for the side of the triangle
+		result.push_back(VertexData(top, norm_side, mat));
+		result.push_back(VertexData(p1, norm_side, mat));
+		result.push_back(VertexData(p2, norm_side, mat));
+
+		// Bush back vertex data for bottom of the triangle
+		result.push_back(VertexData(origin, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+		result.push_back(VertexData(p1, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+		result.push_back(VertexData(p2, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+
+		theta += angle_delta;
+	}
 	return result;
 }
 
