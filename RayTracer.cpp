@@ -105,6 +105,14 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 				RayTracer::adjustForTransparency(ray, theScene, theHit, result);
 			}
 		}
+
+		// Handle textures
+		if (theHit.texture != nullptr) {
+			float u = glm::clamp(theHit.u, 0.0f, 1.0f);
+			float v = glm::clamp(theHit.v, 0.0f, 1.0f);
+			texCol = theHit.texture->getPixel(u, v);
+			result = glm::clamp((result + texCol) / 2.0f, 0.0f, 1.0f);
+		}
 	}
 	else {
 		// If we don't collide with any visible objects, return the 'sky' color.
