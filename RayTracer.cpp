@@ -98,17 +98,21 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 				texCol = theHit.texture->getPixel(u, v);
 				color texContrib = l->illuminate(theHit.interceptPoint, theHit.surfaceNormal, texCol, theScene.camera->cameraFrame, shadow);
 				result += glm::clamp((matContrib + texContrib) / 2.0f, 0.0f, 1.0f);
+				RayTracer::adjustForTransparency(ray, theScene, theHit, result);
 			}
 			else {
 				result += matContrib;
+				RayTracer::adjustForTransparency(ray, theScene, theHit, result);
 			}
 		}
 	}
 	else {
 		// If we don't collide with any visible objects, return the 'sky' color.
 		result = defaultColor;
+		RayTracer::adjustForTransparency(ray, theScene, theHit, result);
 	}
 
+	/*
 	// Handle transparent objects
 	HitRecord transHit = VisibleIShape::findIntersection(ray, theScene.transparentObjects);
 	if (transHit.t < FLT_MAX) {
@@ -117,6 +121,8 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 			result = glm::clamp(result * (1.0f - a) + transHit.material.ambient * a, 0.0f, 1.0f);
 		}
 	}
+	
+	*/
 
 	if (recursionLevel > 0) {
 		// Handle reflections
@@ -134,4 +140,15 @@ color RayTracer::traceIndividualRay(const Ray &ray, const IScene &theScene, int 
 		return glm::clamp(result + reflectionColor * 0.5f, 0.0f, 1.0f);
 
 	} return glm::clamp(result, 0.0f, 1.0f);
+}
+
+void RayTracer::adjustForTransparency(const Ray &ray, const IScene &theScene, const HitRecord &theHit, color &result) const {
+	// Handle transparent objects
+	HitRecord transHit = VisibleIShape::findIntersection(ray, theScene.transparentObjects);
+	if (transHit.t < FLT_MAX) {
+		if (transHit.t < theHit.t) {
+			float a = transHit.material.alpha;
+			result = glm::clamp(result * (1.0f - a) + transHit.material.ambient * a, 0.0f, 1.0f);
+		}
+	}
 }
