@@ -102,6 +102,12 @@ glm::mat3 R(float rads);
 glm::mat3 vertShear(float a);
 glm::mat3 horzShear(float a);
 
+glm::mat3 reflectAcrossYaxis();
+glm::mat3 reflectAcrossOrigin();
+glm::mat3 scale2XAboutPoint(float x, float y);
+glm::mat3 reflectAcrossLineYeqXplus50();
+glm::mat3 rotateAroundOwnAxisAndAroundOrigin(float distFromOrigin, float angleAboutOwnAxis, float angleAboutOrigin);
+
 // 3D versions
 glm::mat4 T(float dx, float dy, float dz);
 glm::mat4 S(float sx, float sy, float sz);

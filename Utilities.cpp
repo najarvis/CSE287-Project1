@@ -880,6 +880,42 @@ glm::mat3 vertShear(float a) {
 	return glm::mat3(1, a, 0, 0, 1, 0, 0, 0, 1);
 }
 
+glm::mat3 reflectAcrossYaxis() {
+	/* | -1, 0, 0 |
+	*  | 0,  1, 0 |
+	*  | 0,  0, 1 |
+	*   -----------
+	*/
+	return glm::mat3(-1, 0, 0, 0, 1, 0, 0, 0, 1);
+}
+glm::mat3 reflectAcrossOrigin() {
+	/* | -1, 0, 0 |
+	*  | 0, -1, 0 |
+	*  | 0,  0, 1 |
+	*   -----------
+	*/
+	return glm::mat3(-1, 0, 0, 0, -1, 0, 0, 0, 1);
+}
+
+glm::mat3 scale2XAboutPoint(float x, float y) {
+	// 3 steps:
+	// 1) Translate to origin
+	// 2) scale 2x
+	// 3) translate back
+	return T(x, y) * S(2, 2) * T(-x, -y);
+}
+glm::mat3 reflectAcrossLineYeqXplus50() {
+	// Not going to lie, I got this working through trial and error. I know the second matrix reflects accross the line y=x, 
+	// though I don't know why I needed to translate by -50 in the x and +50 in the y afterwards.
+	return T(-50.0f, 50.0f) * glm::mat3(0, 1, 0, 1, 0, 0, 0, 0, 1);
+}
+glm::mat3 rotateAroundOwnAxisAndAroundOrigin(float distFromOrigin, float angleAboutOwnAxis, float angleAboutOrigin) {
+	// Rotate around it's own axis
+	// move in the x-direction away from origin
+	// rotate again around origin
+	return R(angleAboutOrigin) * T(distFromOrigin, 0) * R(angleAboutOwnAxis);
+}
+
 /**
 * @fn	glm::mat4 T(float dx, float dy, float dz)
 * @brief	Creates the 4x4 translation matrix for 3D systems.

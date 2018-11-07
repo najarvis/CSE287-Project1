@@ -17,4 +17,5 @@ struct RayTracer {
 						const IScene &theScene, int antiAliasing) const;
 protected:
 	color traceIndividualRay(const Ray &ray, const IScene &theScene, int recursionLevel) const;
+	void adjustForTransparency(const Ray &ray, const IScene &theScene, const HitRecord &theHit, color &result) const;
 };

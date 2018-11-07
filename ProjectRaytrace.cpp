@@ -37,7 +37,7 @@ IScene scene(cameras[currCamera], false);
 void render() {
 	int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
 	cameras[currCamera]->calculateViewingParameters(frameBuffer.getWindowWidth()/2, frameBuffer.getWindowHeight());
-	cameras[currCamera]->changeConfiguration(glm::vec3(0, 10, 15), glm::vec3(4.0f, 1.0f, 0.0f), Y_AXIS);
+	cameras[currCamera]->changeConfiguration(glm::vec3(0, 15, 15), glm::vec3(4.0f, 1.0f, 0.0f), Y_AXIS);
 	rayTrace.raytraceScene(frameBuffer, numReflections, scene, antiAliasing);
 
 	int frameEndTime = glutGet(GLUT_ELAPSED_TIME); // Get end time
