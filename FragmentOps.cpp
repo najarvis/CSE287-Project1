@@ -83,7 +83,9 @@ void FragmentOps::processFragment(FrameBuffer &frameBuffer, const glm::vec3 &eye
 	DEBUG_PIXEL = (X == xDebug && Y == yDebug);
 	bool passDepthTest = !performDepthTest || Z < frameBuffer.getDepth(X, Y);
 	if (passDepthTest) {
-		frameBuffer.setColor(X, Y, fragment.material.ambient);
+		Frame frame = Frame::createOrthoNormalBasis(viewingMatrix);
+		color c = lights[0]->illuminate(fragment.worldPosition, fragment.worldNormal, fragment.material, frame, false);
+		frameBuffer.setColor(X, Y, c);
 		frameBuffer.setDepth(X, Y, Z);
 	}
 }

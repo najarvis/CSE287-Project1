@@ -72,6 +72,7 @@ EShapeData EShape::createECylinder(const Material &mat, float R, float height, i
 		side.push_back(bottom1);
 		glm::vec3 norm = normalFrom3Points(side);
 
+		/*
 		// Top side
 		result.push_back(VertexData(top, glm::vec3(0.0f, 1.0f, 0.0f), mat));
 		result.push_back(VertexData(top1, glm::vec3(0.0f, 1.0f, 0.0f), mat));
@@ -81,6 +82,7 @@ EShapeData EShape::createECylinder(const Material &mat, float R, float height, i
 		result.push_back(VertexData(bottom, glm::vec3(0.0f, -1.0f, 0.0f), mat));
 		result.push_back(VertexData(bottom1, glm::vec3(0.0f, -1.0f, 0.0f), mat));
 		result.push_back(VertexData(bottom2, glm::vec3(0.0f, -1.0f, 0.0f), mat));
+		*/
 
 		// Side triangle 1
 		result.push_back(VertexData(top1, norm, mat));
@@ -121,8 +123,8 @@ EShapeData EShape::createECone(const Material &mat, float R, float height, int s
 		// Calculate normal for side of the triangle
 		std::vector<glm::vec3> side;
 		side.push_back(top);
-		side.push_back(p1);
 		side.push_back(p2);
+		side.push_back(p1);
 		glm::vec3 norm_side = normalFrom3Points(side);
 
 		// Push back vertex data for the side of the triangle
