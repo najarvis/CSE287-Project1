@@ -15,7 +15,7 @@
 PositionalLightPtr theLight = new PositionalLight(glm::vec3(2, 1, 3), pureWhiteLight);
 std::vector<LightSourcePtr> lights = { theLight };
 
-glm::vec3 position(0, 1, 4);
+glm::vec3 position(0, 1, 5);
 float azimuth = glm::radians(180.0f);
 float elevation = 0.0f;
 float moveAngle = azimuth;
@@ -36,14 +36,16 @@ std::vector<glm::vec4> get_points() {
 
 EShapeData checkerBoard = EShape::createECheckerBoard(copper, tin, 10, 10, 10);
 EShapeData plane = EShape::createEPlanes(silver, get_points());
-EShapeData cone = EShape::createECone(greenPlastic, 2.5f, 1.0f, 16, 3);
-EShapeData YCylinder = EShape::createECylinder(redRubber, 2.0f, 4.0f, 12, 4);
+EShapeData cone = EShape::createECone(greenPlastic, 1.5f, 2.0f, 16, 3);
+EShapeData YCylinder = EShape::createECylinder(redRubber, 1.5f, 2.0f, 12, 4);
+EShapeData ZCylinder = EShape::createECylinder(chrome, 0.5f, 3.0f, 16, 4);
 
 void renderObjects() {
 	VertexOps::render(frameBuffer, checkerBoard, lights, glm::mat3());
 	VertexOps::render(frameBuffer, plane, lights, glm::mat3());
 	VertexOps::render(frameBuffer, cone, lights, T(0.0f, 0.0f, 1.0f));
-	VertexOps::render(frameBuffer, YCylinder, lights, T(-4.0f, 0.0f, -1.0f));
+	VertexOps::render(frameBuffer, YCylinder, lights, T(-4.0f, 1.0f, -1.0f));
+	VertexOps::render(frameBuffer, ZCylinder, lights, T(4.0f, 0.5f, -1.0f) * Rx(M_PI_2));
 }
 
 static void render() {
@@ -55,11 +57,10 @@ static void render() {
 	float x, y, z;
 	computeXYZFromAzimuthAndElevation(1.0f, azimuth, elevation, x, y, z);
 	glm::vec3 lookAtPos = position + glm::vec3(x, y, z);
-	// std::cout << "az: " << azimuth << ", el: " << elevation << ", (x, y, z)" << glm::vec3(x, y, z) << ", Pos: " << position << ", Look at Pos: " << lookAtPos << std::endl;
 	VertexOps::viewingTransformation = glm::lookAt(position, lookAtPos, Y_AXIS);
 
 	float AR = (float)width / height;
-	VertexOps::projectionTransformation = glm::perspective(glm::radians(125.0), 2.0, 0.1, 5.0);
+	VertexOps::projectionTransformation = glm::perspective(float(glm::radians(60.0)), AR, 0.1f, 100.0f);
 	VertexOps::setViewport(0, width - 1, 0, height - 1);
 	renderObjects();
 	frameBuffer.showColorBuffer();
@@ -108,9 +109,9 @@ void keyboard(unsigned char key, int x, int y) {
 }
 
 static void special(int key, int x, int y) {
-	static const double rotateInc = glm::radians(10.0);
-	static const double minEL = -glm::radians(80.0);
-	static const double maxEL = glm::radians(80.0);
+	static const float rotateInc = glm::radians(10.0);
+	static const float minEL = -glm::radians(80.0);
+	static const float maxEL = glm::radians(80.0);
 	switch (key) {
 	case(GLUT_KEY_LEFT):	azimuth = fmod(azimuth + rotateInc, M_2PI);
 							break;
@@ -127,9 +128,9 @@ static void special(int key, int x, int y) {
 static void timer(int id) {
 	// You should change this.
 	if (isMoving) {
-		position += glm::vec3(glm::cos(moveAngle), 0.0f, glm::sin(moveAngle)) * SPEED;
-		position.z -= SPEED;
-		std::cout << position << std::endl;
+		position += glm::vec3(glm::sin(moveAngle), 0.0f, glm::cos(moveAngle)) * SPEED;
+		// position.z -= SPEED;
+		// std::cout << position << std::endl;
 		// angle += glm::radians(5.0);
 	}
 	glutTimerFunc(100, timer, 0);
